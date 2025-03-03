@@ -3,21 +3,22 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { faTrashCan, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { Link, useNavigate, useSubmit } from "@remix-run/react";
 import { useState } from "react";
+import { useNavigate, useSubmit } from "react-router";
 import {
   useInventory,
   useLocalize,
   usePreferences
 } from "~/components/app-context";
+import { EditorRange } from "~/components/editor-range";
 import { EditorToggle } from "~/components/editor-toggle";
 import { useCheckbox } from "~/components/hooks/use-checkbox";
+import { useStorageState } from "~/components/hooks/use-storage-state";
 import { useSync } from "~/components/hooks/use-sync";
 import { LanguageSelect } from "~/components/language-select";
-import { Modal } from "~/components/modal";
+import { Modal, ModalHeader } from "~/components/modal";
 import { ModalButton } from "~/components/modal-button";
 import { confirm } from "~/components/modal-generic";
 import { Select } from "~/components/select";
@@ -27,11 +28,12 @@ import { languages } from "~/data/languages";
 import { SyncAction } from "~/data/sync";
 import { middleware } from "~/http.server";
 import { getMetaTitle } from "~/root-meta";
+import type { Route } from "./+types/settings._index";
 import { ApiActionPreferencesUrl } from "./api.action.preferences._index";
 
 export const meta = getMetaTitle("HeaderSettingsLabel");
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   await middleware(request);
   return null;
 }
@@ -53,6 +55,7 @@ export default function Settings() {
   const [hideFreeItems, setHideFreeItems] = useCheckbox(selectedHideFreeItems);
   const [language, setLanguage] = useState(selectedLanguage);
   const [statsForNerds, setStatsForNerds] = useCheckbox(selectedStatsForNerds);
+  const [volume, setVolume] = useStorageState("appVolume", 1);
 
   const submit = useSubmit();
   const navigate = useNavigate();
@@ -90,16 +93,20 @@ export default function Settings() {
   }
 
   return (
-    <Modal className="w-[420px]">
-      <div className="flex select-none items-center justify-between px-4 py-2 text-sm font-bold">
-        <span className="text-neutral-400">{localize("SettingsHeader")}</span>
-        <div className="flex items-center">
-          <Link className="opacity-50 hover:opacity-100" to="/">
-            <FontAwesomeIcon icon={faXmark} className="h-4" />
-          </Link>
-        </div>
-      </div>
-      <div className="space-y-2 px-4">
+    <Modal className="w-[540px]">
+      <ModalHeader title={localize("SettingsHeader")} linkTo="/" />
+      <div className="mt-2 space-y-2 px-2">
+        <SettingsLabel label={localize("SettingsMasterVolume")}>
+          <EditorRange
+            format={(value) => (value * 100).toFixed(0).toString()}
+            max={1}
+            min={0}
+            onChange={setVolume}
+            step={0.01}
+            value={volume}
+            valueStyles="w-5 text-right"
+          />
+        </SettingsLabel>
         <SettingsLabel label={localize("SettingsLanguage")}>
           <LanguageSelect
             languages={languages.map(({ name, countries }) => ({
@@ -133,11 +140,9 @@ export default function Settings() {
         <SettingsLabel label={localize("SettingsHideFilters")}>
           <EditorToggle checked={hideFilters} onChange={setHideFilters} />
         </SettingsLabel>
-      </div>
-      <div className="mt-4 px-4">
         {inventory.size() > 0 && (
           <button
-            className="flex cursor-default items-center gap-2 rounded border border-neutral-500/20 px-2 py-1 font-display text-red-500 transition-all hover:border-red-500"
+            className="font-display flex h-12 w-full cursor-default items-center gap-3 rounded-sm border border-neutral-500/20 bg-neutral-800/50 px-3 py-1 text-red-500 transition-all hover:ring-2 hover:ring-red-500"
             onClick={handleRemoveAllItems}
           >
             <FontAwesomeIcon icon={faTrashCan} className="h-4" />
@@ -145,7 +150,7 @@ export default function Settings() {
           </button>
         )}
       </div>
-      <div className="mt-6 flex justify-end gap-2 px-4 pb-4">
+      <div className="my-6 flex justify-center gap-2 px-4">
         <ModalButton
           children={localize("SettingsSave")}
           onClick={handleSubmit}

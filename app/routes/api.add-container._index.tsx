@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CS2Economy, ensure } from "@ianlucas/cs2-lib";
-import { ActionFunctionArgs, json } from "@remix-run/node";
 import { z } from "zod";
 import { api } from "~/api.server";
+import { serverGlobals } from "~/globals";
 import { middleware } from "~/http.server";
 import {
   API_SCOPE,
@@ -16,8 +16,9 @@ import {
 import { findUniqueUser, manipulateUserInventory } from "~/models/user.server";
 import { badRequest, methodNotAllowed, unauthorized } from "~/responses.server";
 import { random } from "~/utils/misc";
+import type { Route } from "./+types/api.add-container._index";
 
-export const action = api(async ({ request }: ActionFunctionArgs) => {
+export const action = api(async ({ request }: Route.ActionArgs) => {
   await middleware(request);
   if (request.method !== "POST") {
     throw methodNotAllowed;
@@ -73,13 +74,15 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
         });
       }
     });
-    return json({
+    return Response.json({
       ...item.item,
       ...(language !== undefined
-        ? global.__itemLocalizationByLanguage[language][item.id]
+        ? serverGlobals.itemLocalizationByLanguage[language][item.id]
         : item.language)
     });
   } catch {
     return badRequest;
   }
 });
+
+export { loader } from "./api.$";

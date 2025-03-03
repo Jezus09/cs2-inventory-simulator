@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Session } from "@remix-run/node";
+import { Session } from "react-router";
 import { LanguageName, languageNames, languages } from "~/data/languages";
-import { getRule } from "~/models/rule.server";
+import { appCountry } from "~/models/rule.server";
 
 export function isValidLanguage(language: unknown): language is LanguageName {
   return languageNames.includes(language as LanguageName);
@@ -28,7 +28,7 @@ function getLangFromLanguage(name: string) {
 }
 
 export async function getLanguage(session: Session, ipCountry: string | null) {
-  const country = (ipCountry || (await getRule("appCountry"))).toLowerCase();
+  const country = (ipCountry || (await appCountry.get())).toLowerCase();
   const language =
     (session.get("language") as string | null | undefined) ||
     getLanguageFromCountry(country);

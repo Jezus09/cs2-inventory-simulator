@@ -3,8 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { faSquare } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import clsx from "clsx";
 import { EconomyItemFilter } from "~/utils/economy-filters";
 import { useLocalize } from "./app-context";
@@ -29,8 +27,8 @@ export function ItemPickerFilterDesktop({
   }
 
   return (
-    <div className="flex w-[220px]">
-      <div className="w-full rounded-br rounded-tr bg-black/10 py-1.5">
+    <div className="flex max-w-[220px] min-w-[168px]">
+      <div className="w-full rounded-tr rounded-br bg-black/10 pb-1.5">
         {categories.map((filter, index) => {
           const isActive =
             filter.category === value.category && filter.type === value.type;
@@ -38,27 +36,24 @@ export function ItemPickerFilterDesktop({
           return (
             <button
               className={clsx(
-                "flex w-full items-center justify-between gap-2 px-4 py-1 text-left transition-all",
-                isIdle && "group text-neutral-500 hover:text-neutral-300",
-                isActive && "bg-black/20"
+                "relative flex w-full cursor-default items-center justify-between gap-2 overflow-hidden px-4 py-1 pl-8 text-left transition-all",
+                isIdle &&
+                  "group text-neutral-500 hover:bg-black/5 hover:text-neutral-300",
+                isActive && "bg-black/20 text-blue-500"
               )}
               key={index}
               onClick={handleClick(filter)}
             >
-              <FontAwesomeIcon
-                icon={faSquare}
-                className={clsx("h-3 transition-all", isIdle && "opacity-0")}
-              />
-              <div className="min-w-0 flex-1 whitespace-nowrap font-display font-bold">
-                <TextSlider text={localize(`Category${filter.label}`)} />
-              </div>
               <ItemPickerFilterIcon
                 icon={filter.icon}
                 className={clsx(
-                  "h-4 transition-all",
-                  isActive ? "translate-x-0 scale-125" : "-translate-x-2"
+                  "absolute top-1 left-5 h-4 -rotate-12 opacity-15 transition-all",
+                  isActive ? "scale-200" : "scale-150"
                 )}
               />
+              <div className="font-display min-w-0 flex-1 font-bold whitespace-nowrap drop-shadow-sm">
+                <TextSlider text={localize(`Category${filter.label}`)} />
+              </div>
             </button>
           );
         })}

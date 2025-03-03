@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import {
+  CS2BaseInventoryItem,
   CS2Economy,
   CS2EconomyItem,
   CS2Inventory,
@@ -22,6 +23,7 @@ export const UNLOCKABLE_ITEM_TYPE: CS2ItemTypeValues[] = [
 export const EDITABLE_ITEM_TYPE: CS2ItemTypeValues[] = [
   CS2ItemType.Agent,
   CS2ItemType.Gloves,
+  CS2ItemType.Keychain,
   CS2ItemType.Melee,
   CS2ItemType.MusicKit,
   CS2ItemType.Weapon
@@ -31,6 +33,7 @@ export const INSPECTABLE_ITEM_TYPE: CS2ItemTypeValues[] = [
   CS2ItemType.Collectible,
   CS2ItemType.Gloves,
   CS2ItemType.Graffiti,
+  CS2ItemType.Keychain,
   CS2ItemType.Melee,
   CS2ItemType.MusicKit,
   CS2ItemType.Patch,
@@ -46,7 +49,7 @@ export function parseInventory(inventory?: string | null) {
   }
 }
 
-const fakeInventory = new CS2Inventory({});
+const fakeInventory = new CS2Inventory();
 export function createFakeInventoryItem(
   props: CS2EconomyItem,
   item?: Partial<CS2InventoryItem>
@@ -59,6 +62,15 @@ export function createFakeInventoryItem(
   );
   Object.assign(inventoryItem, item);
   return inventoryItem;
+}
+
+export function createFakeInventoryItemFromBase(item: CS2BaseInventoryItem) {
+  return new CS2InventoryItem(
+    fakeInventory,
+    -1,
+    item,
+    CS2Economy.getById(item.id)
+  );
 }
 
 export function getFreeItemsToDisplay(hideFreeItems = false) {

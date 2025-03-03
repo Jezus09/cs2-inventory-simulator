@@ -1,0 +1,65 @@
+// Ez a kódrészlet a meglévő prisma/schema.prisma fájl végére kerül
+
+// Marketplace Item model for listings
+model MarketplaceItem {
+  id          String    @id @default(uuid())
+  itemUid     Int       @unique
+  sellerId    String
+  name        String
+  description String?
+  price       Float
+  itemType    String
+  rarity      String?
+  status      String    @default("active") // active, sold, cancelled
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  seller      User      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  transaction Transaction?
+
+  @@index([status])
+  @@index([price])
+  @@index([itemType])
+  @@index([sellerId])
+}
+
+// Transaction model for purchase records
+model Transaction {
+  id               String        @id @default(uuid())
+  marketplaceItemId String        @unique
+  buyerId         String
+  sellerId        String
+  price           Float
+  status          String        @default("completed")
+  createdAt       DateTime      @default(now())
+
+  // Relations
+  marketplaceItem MarketplaceItem @relation(fields: [marketplaceItemId], references: [id], onDelete: Cascade)
+  buyer           User           @relation("buyer", fields: [buyerId], references: [id])
+  seller          User           @relation("seller", fields: [sellerId], references: [id])
+
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+// User balance model
+model UserBalance {
+  userId    String   @id
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Update User model to include relations
+model User {
+  // Existing fields...
+
+  // New relations
+  sellerItems    MarketplaceItem[]
+  balance        UserBalance?
+  buyTransactions Transaction[] @relation("buyer")
+  sellTransactions Transaction[] @relation("seller")
+}

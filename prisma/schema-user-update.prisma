@@ -1,0 +1,10 @@
+// Update the existing User model to include these relations
+model User {
+  // Keep all existing fields...
+  
+  // Add these new relations
+  listedItems MarketplaceItem[]
+  buyerTransactions Transaction[] @relation("BuyerTransactions")
+  sellerTransactions Transaction[] @relation("SellerTransactions")
+  balance UserBalance?
+}

@@ -1,55 +1,22 @@
-# Adapted from Remix's Indie Stack
-FROM node:18-bullseye-slim as base
+FROM node:20-alpine AS development-dependencies-env
+COPY . /app
+WORKDIR /app
+RUN npm ci
 
-ENV NODE_ENV production
+FROM node:20-alpine AS production-dependencies-env
+COPY ./package.json package-lock.json prisma /app/
+WORKDIR /app
+RUN npm ci --omit=dev && npx prisma generate
 
-# Install Prisma dependencies
-RUN apt-get update && apt-get install -y openssl
-
-# Install Inventory Simulator dependencies
-FROM base as deps
-
-WORKDIR /myapp
-
-ADD package.json package-lock.json ./
-RUN npm install --include=dev
-
-# Setup production node_modules
-FROM base as production-deps
-
-WORKDIR /myapp
-
-COPY --from=deps /myapp/node_modules /myapp/node_modules
-ADD package.json package-lock.json ./
-RUN npm prune --omit=dev
-
-# Build the app
-FROM base as build
-
-WORKDIR /myapp
-
-COPY --from=deps /myapp/node_modules /myapp/node_modules
-
-ADD prisma .
-RUN npx prisma generate
-
-ADD . .
+FROM node:20-alpine AS build-env
+COPY . /app/
+COPY --from=development-dependencies-env /app/node_modules /app/node_modules
+WORKDIR /app
 RUN npm run build
 
-# Finally, build the production image with minimal footprint
-FROM base
-
-ENV NODE_ENV="production"
-
-WORKDIR /myapp
-
-COPY --from=production-deps /myapp/node_modules /myapp/node_modules
-COPY --from=build /myapp/node_modules/.prisma /myapp/node_modules/.prisma
-
-COPY --from=build /myapp/build /myapp/build
-COPY --from=build /myapp/public /myapp/public
-COPY --from=build /myapp/package.json /myapp/package.json
-COPY --from=build /myapp/start.sh /myapp/start.sh
-COPY --from=build /myapp/prisma /myapp/prisma
-
-ENTRYPOINT [ "./start.sh" ]
+FROM node:20-alpine
+COPY ./package.json package-lock.json start.sh prisma /app/
+COPY --from=production-dependencies-env /app/node_modules /app/node_modules
+COPY --from=build-env /app/build /app/build
+WORKDIR /app
+ENTRYPOINT ["./start.sh"]

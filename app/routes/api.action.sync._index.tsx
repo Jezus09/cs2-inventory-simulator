@@ -7,15 +7,47 @@ import {
   CS2BaseInventoryItem,
   CS2Economy,
   CS2EconomyItem,
-  CS2ItemType
+  CS2ItemType,
+  RecordValue
 } from "@ianlucas/cs2-lib";
-import { ActionFunctionArgs, SerializeFrom, json } from "@remix-run/node";
 import { z } from "zod";
 import { api } from "~/api.server";
 import { requireUser } from "~/auth.server";
 import { SyncAction } from "~/data/sync";
 import { middleware } from "~/http.server";
-import { expectRule, expectRuleNotContain } from "~/models/rule.server";
+import {
+  craftAllowNametag,
+  craftAllowSeed,
+  craftAllowStatTrak,
+  craftAllowStickerRotation,
+  craftAllowStickers,
+  craftAllowStickerWear,
+  craftAllowStickerX,
+  craftAllowStickerY,
+  craftAllowWear,
+  craftHideCategory,
+  craftHideId,
+  craftHideModel,
+  craftHideType,
+  editAllowNametag,
+  editAllowSeed,
+  editAllowStatTrak,
+  editAllowStickerRotation,
+  editAllowStickers,
+  editAllowStickerWear,
+  editAllowStickerX,
+  editAllowStickerY,
+  editAllowWear,
+  editHideCategory,
+  editHideId,
+  editHideModel,
+  editHideType,
+  inventoryItemAllowApplyPatch,
+  inventoryItemAllowApplySticker,
+  inventoryItemAllowEdit,
+  inventoryItemAllowRemovePatch,
+  inventoryItemAllowScrapeSticker
+} from "~/models/rule.server";
 import { manipulateUserInventory } from "~/models/user.server";
 import { methodNotAllowed } from "~/responses.server";
 import { nonNegativeInt, teamShape } from "~/utils/shapes";
@@ -23,6 +55,7 @@ import {
   clientInventoryItemShape,
   syncInventoryShape
 } from "~/utils/shapes.server";
+import type { Route } from "./+types/api.action.sync._index";
 
 const actionShape = z
   .object({
@@ -153,22 +186,47 @@ const actionShape = z
 
 export type ActionShape = z.infer<typeof actionShape>;
 
-export type ApiActionSyncData = SerializeFrom<typeof action>;
+export type ApiActionSyncData = {
+  syncedAt: number;
+};
 
 async function enforceCraftRulesForItem(
   idOrItem: number | CS2EconomyItem,
   userId: string
 ) {
   const { category, type, model, id } = CS2Economy.get(idOrItem);
-  await expectRuleNotContain("craftHideId", id, userId);
+  await craftHideId.for(userId).notContains(id);
   if (category !== undefined) {
-    await expectRuleNotContain("craftHideCategory", category, userId);
+    await craftHideCategory.for(userId).notContains(category);
   }
   if (type !== undefined) {
-    await expectRuleNotContain("craftHideType", type, userId);
+    await craftHideType.for(userId).notContains(type);
   }
   if (model !== undefined) {
-    await expectRuleNotContain("craftHideModel", model, userId);
+    await craftHideModel.for(userId).notContains(model);
+  }
+}
+
+async function enforceCraftRulesForStickerAttributes(
+  {
+    wear,
+    rotation,
+    x,
+    y
+  }: RecordValue<NonNullable<CS2BaseInventoryItem["stickers"]>>,
+  userId: string
+) {
+  if (wear !== undefined) {
+    await craftAllowStickerWear.for(userId).truthy();
+  }
+  if (rotation !== undefined) {
+    await craftAllowStickerRotation.for(userId).truthy();
+  }
+  if (x !== undefined) {
+    await craftAllowStickerX.for(userId).truthy();
+  }
+  if (y !== undefined) {
+    await craftAllowStickerY.for(userId).truthy();
   }
 }
 
@@ -177,23 +235,24 @@ async function enforceCraftRulesForInventoryItem(
   userId: string
 ) {
   if (stickers !== undefined) {
-    await expectRule("craftAllowStickers", true, userId);
-    await expectRuleNotContain("craftHideType", CS2ItemType.Sticker, userId);
+    await craftAllowStickers.for(userId).truthy();
+    await craftHideType.for(userId).notContains(CS2ItemType.Sticker);
     for (const sticker of Object.values(stickers)) {
       await enforceCraftRulesForItem(sticker.id, userId);
+      await enforceCraftRulesForStickerAttributes(sticker, userId);
     }
   }
   if (statTrak !== undefined) {
-    await expectRule("craftAllowStatTrak", true, userId);
+    await craftAllowStatTrak.for(userId).truthy();
   }
   if (wear !== undefined) {
-    await expectRule("craftAllowWear", true, userId);
+    await craftAllowWear.for(userId).truthy();
   }
   if (seed !== undefined) {
-    await expectRule("craftAllowSeed", true, userId);
+    await craftAllowSeed.for(userId).truthy();
   }
   if (nameTag !== undefined) {
-    await expectRule("craftAllowNametag", true, userId);
+    await craftAllowNametag.for(userId).truthy();
   }
 }
 
@@ -202,15 +261,15 @@ async function enforceEditRulesForItem(
   userId: string
 ) {
   const { category, type, model, id } = CS2Economy.get(idOrItem);
-  await expectRuleNotContain("editHideId", id, userId);
+  await editHideId.for(userId).notContains(id);
   if (category !== undefined) {
-    await expectRuleNotContain("editHideCategory", category, userId);
+    await editHideCategory.for(userId).notContains(category);
   }
   if (type !== undefined) {
-    await expectRuleNotContain("editHideType", type, userId);
+    await editHideType.for(userId).notContains(type);
   }
   if (model !== undefined) {
-    await expectRuleNotContain("editHideModel", model, userId);
+    await editHideModel.for(userId).notContains(model);
   }
 }
 
@@ -219,27 +278,51 @@ async function enforceEditRulesForInventoryItem(
   userId: string
 ) {
   if (stickers !== undefined) {
-    await expectRule("editAllowStickers", true, userId);
-    await expectRuleNotContain("editHideType", CS2ItemType.Sticker, userId);
+    await editAllowStickers.for(userId).truthy();
+    await editHideType.for(userId).notContains(CS2ItemType.Sticker);
     for (const sticker of Object.values(stickers)) {
       await enforceEditRulesForItem(sticker.id, userId);
+      await enforceEditRulesForStickerAttributes(sticker, userId);
     }
   }
   if (statTrak !== undefined) {
-    await expectRule("editAllowStatTrak", true, userId);
+    await editAllowStatTrak.for(userId).truthy();
   }
   if (wear !== undefined) {
-    await expectRule("editAllowWear", true, userId);
+    await editAllowWear.for(userId).truthy();
   }
   if (seed !== undefined) {
-    await expectRule("editAllowSeed", true, userId);
+    await editAllowSeed.for(userId).truthy();
   }
   if (nameTag !== undefined) {
-    await expectRule("editAllowNametag", true, userId);
+    await editAllowNametag.for(userId).truthy();
   }
 }
 
-export const action = api(async ({ request }: ActionFunctionArgs) => {
+async function enforceEditRulesForStickerAttributes(
+  {
+    wear,
+    rotation,
+    x,
+    y
+  }: RecordValue<NonNullable<CS2BaseInventoryItem["stickers"]>>,
+  userId: string
+) {
+  if (wear !== undefined) {
+    await editAllowStickerWear.for(userId).truthy();
+  }
+  if (rotation !== undefined) {
+    await editAllowStickerRotation.for(userId).truthy();
+  }
+  if (x !== undefined) {
+    await editAllowStickerX.for(userId).truthy();
+  }
+  if (y !== undefined) {
+    await editAllowStickerY.for(userId).truthy();
+  }
+}
+
+export const action = api(async ({ request }: Route.ActionArgs) => {
   await middleware(request);
   if (request.method !== "POST") {
     throw methodNotAllowed;
@@ -260,16 +343,16 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
       for (const action of actions) {
         switch (action.type) {
           case SyncAction.Add:
-            await enforceCraftRulesForInventoryItem(action.item, userId);
             await enforceCraftRulesForItem(action.item.id, userId);
+            await enforceCraftRulesForInventoryItem(action.item, userId);
             inventory.add(action.item);
             break;
           case SyncAction.AddFromCache:
             if (rawInventory === null && !addedFromCache) {
               for (const item of Object.values(action.data.items)) {
                 try {
-                  await enforceCraftRulesForInventoryItem(item, userId);
                   await enforceCraftRulesForItem(item.id, userId);
+                  await enforceCraftRulesForInventoryItem(item, userId);
                   inventory.add(item);
                 } catch {}
               }
@@ -285,7 +368,7 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
             );
             break;
           case SyncAction.ApplyItemPatch:
-            await expectRule("inventoryItemAllowApplyPatch", true, userId);
+            await inventoryItemAllowApplyPatch.for(userId).truthy();
             inventory.applyItemPatch(
               action.targetUid,
               action.patchUid,
@@ -293,7 +376,7 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
             );
             break;
           case SyncAction.ApplyItemSticker:
-            await expectRule("inventoryItemAllowApplySticker", true, userId);
+            await inventoryItemAllowApplySticker.for(userId).truthy();
             inventory.applyItemSticker(
               action.targetUid,
               action.stickerUid,
@@ -317,11 +400,11 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
             inventory.remove(action.uid);
             break;
           case SyncAction.RemoveItemPatch:
-            await expectRule("inventoryItemAllowRemovePatch", true, userId);
+            await inventoryItemAllowRemovePatch.for(userId).truthy();
             inventory.removeItemPatch(action.targetUid, action.slot);
             break;
           case SyncAction.ScrapeItemSticker:
-            await expectRule("inventoryItemAllowScrapeSticker", true, userId);
+            await inventoryItemAllowScrapeSticker.for(userId).truthy();
             inventory.scrapeItemSticker(action.targetUid, action.slot);
             break;
           case SyncAction.SwapItemsStatTrak:
@@ -341,14 +424,14 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
             inventory.retrieveFromStorageUnit(action.uid, action.retrieveUids);
             break;
           case SyncAction.Edit:
-            await expectRule("inventoryItemAllowEdit", true, userId);
+            await inventoryItemAllowEdit.for(userId).truthy();
             await enforceEditRulesForItem(action.attributes.id, userId);
             await enforceEditRulesForInventoryItem(action.attributes, userId);
             inventory.edit(action.uid, {
               ...action.attributes,
               statTrak:
                 action.attributes.statTrak !== undefined
-                  ? inventory.get(action.uid).statTrak ?? 0
+                  ? (inventory.get(action.uid).statTrak ?? 0)
                   : undefined,
               nameTag: action.attributes.nameTag
             });
@@ -368,7 +451,10 @@ export const action = api(async ({ request }: ActionFunctionArgs) => {
       }
     }
   });
-  return json({
+
+  return Response.json({
     syncedAt: responseSyncedAt.getTime()
-  });
+  } satisfies ApiActionSyncData);
 });
+
+export { loader } from "./api.$";

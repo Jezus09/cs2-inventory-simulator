@@ -12,11 +12,11 @@ import {
   useEffect,
   useMemo
 } from "react";
-import { useTypedLoaderData } from "remix-typedjson";
 import { useInventoryFilterState } from "~/components/hooks/use-inventory-filter-state";
 import { useInventoryState } from "~/components/hooks/use-inventory-state";
 import { useLocalization } from "~/components/hooks/use-localization";
 import { SyncAction } from "~/data/sync";
+import { clientGlobals } from "~/globals";
 import type { loader } from "~/root";
 import { pushToSync, sync } from "~/sync";
 import { updateEconomyLanguage } from "~/utils/economy";
@@ -31,6 +31,7 @@ import {
   sortItemsByEquipped,
   transform
 } from "~/utils/inventory-transform";
+import { SerializeFrom } from "~/utils/misc";
 import { cacheAuthenticatedUserId } from "~/utils/user-cached-data";
 
 const AppContext = createContext<
@@ -40,7 +41,7 @@ const AppContext = createContext<
     items: TransformedInventoryItems;
     setInventory: (value: CS2Inventory) => void;
     localization: ReturnType<typeof useLocalization>;
-  } & ReturnType<typeof useTypedLoaderData<typeof loader>>
+  } & SerializeFrom<typeof loader>
 >(null!);
 
 export function useAppContext() {
@@ -98,7 +99,9 @@ export function AppProvider({
   const inventorySpec = {
     data: user?.inventory
       ? parseInventory(user?.inventory)
-      : getCachedInventoryData(),
+      : rules.appCacheInventory
+        ? getCachedInventoryData()
+        : undefined,
     maxItems: rules.inventoryMaxItems,
     storageUnitMaxItems: rules.inventoryStorageUnitMaxItems
   } satisfies Partial<CS2InventorySpec>;
@@ -112,12 +115,16 @@ export function AppProvider({
   });
 
   useEffect(() => {
+    clientGlobals.assetsBaseUrl = rules.assetsBaseUrl;
+  }, [rules.assetsBaseUrl]);
+
+  useEffect(() => {
     cacheInventoryData(inventory.stringify());
   }, [inventory]);
 
   useEffect(() => {
     if (user !== undefined) {
-      if (user.inventory === null) {
+      if (rules.appCacheInventory && user.inventory === null) {
         const cachedData = getSanitizedCachedInventoryData();
         if (cachedData !== undefined) {
           pushToSync({

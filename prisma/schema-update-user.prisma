@@ -1,0 +1,21 @@
+model User {
+  // Existing fields...
+  authTokens ApiAuthToken[]
+  avatar String
+  caches UserCache[]
+  createdAt DateTime @default(now())
+  groups UserGroup[]
+  id String @id
+  inventory String?
+  name String
+  overwrites UserRule[]
+  preferences UserPreference?
+  syncedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // New relations for marketplace
+  listedItems Marketplace_Item[]
+  buyerTransactions Transaction[] @relation("BuyerTransactions")
+  sellerTransactions Transaction[] @relation("SellerTransactions")
+  balance UserBalance?
+}

@@ -1,0 +1,12 @@
+// Importáld a marketplace seed függvényt
+import { seedMarketplaceRules } from "~/rules/marketplace-rules";
+
+// Az app.tsx-ben vagy root.tsx-ben a loader függvényben
+export async function loader({ request }: LoaderFunctionArgs) {
+  // Meglévő kód...
+  
+  // Marketplace szabályok inicializálása
+  await seedMarketplaceRules();
+  
+  // További kód...
+}

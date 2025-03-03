@@ -17,12 +17,14 @@ import {
   ApiActionUnlockCaseUrl
 } from "~/routes/api.action.unlock-case._index";
 import { dispatchSyncError, sync } from "~/sync";
+import { unlockNonSpecialItem } from "~/utils/economy";
 import { postJson } from "~/utils/fetch";
 import { range } from "~/utils/number";
 import { playSound } from "~/utils/sound";
 import { useInventory, useUser } from "./app-context";
 import { useKeyRelease } from "./hooks/use-key-release";
 import { useIsSyncing } from "./hooks/use-sync-state";
+import { Overlay } from "./overlay";
 import { UnlockCaseContainer } from "./unlock-case-container";
 import { UnlockCaseContainerUnlocked } from "./unlock-case-container-unlocked";
 
@@ -96,7 +98,7 @@ export function UnlockCase({
         wait(() => {
           setItems(
             range(32).map((_, index) =>
-              index === 28 ? unlockedItem : caseItem.unlockContainer()
+              index === 28 ? unlockedItem : unlockNonSpecialItem(caseItem)
             )
           );
           setIsDisplaying(true);
@@ -115,7 +117,7 @@ export function UnlockCase({
     <ClientOnly
       children={() =>
         createPortal(
-          <div className="fixed left-0 top-0 z-50 flex h-full w-full select-none items-center justify-center bg-black/60 backdrop-blur-sm">
+          <Overlay isWrapperless>
             {unlockedItem ? (
               <UnlockCaseContainerUnlocked
                 caseItem={caseItem}
@@ -137,7 +139,7 @@ export function UnlockCase({
                 onUnlock={handleUnlock}
               />
             )}
-          </div>,
+          </Overlay>,
           document.body
         )
       }

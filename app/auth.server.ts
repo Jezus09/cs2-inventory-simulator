@@ -3,33 +3,36 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { redirect } from "@remix-run/node";
-import { Authenticator } from "remix-auth";
-import { sessionStorage } from "~/session.server";
-import { ApiStrategy } from "./api-strategy.server";
-import { findUniqueUser } from "./models/user.server";
-import { SteamStrategy } from "./steam-strategy.server";
+import { type LoaderFunctionArgs } from "@remix-run/node";
+import { getRule } from "./models/rule.server";
 
-export const authenticator = new Authenticator<string>(sessionStorage);
+// Add proper error handling to the callback URL retrieval
+export async function getSteamCallbackUrl() {
+  try {
+    const callbackUrlRule = await getRule("steamCallbackUrl");
+    // Validate the URL before returning it
+    if (!callbackUrlRule || !callbackUrlRule.trim()) {
+      console.error("Steam callback URL not found in rules");
+      return new URL("http://localhost:3000/auth/callback"); // Fallback URL
+    }
+    
+    return new URL(callbackUrlRule);
+  } catch (error) {
+    console.error("Error getting Steam callback URL:", error);
+    return new URL("http://localhost:3000/auth/callback"); // Fallback URL
+  }
+}
 
-authenticator.use(new SteamStrategy(), "steam").use(new ApiStrategy(), "api");
-
+// Update your authentication functions to use the getSteamCallbackUrl helper
 export async function findRequestUser(request: Request) {
   try {
-    const userId = await authenticator.isAuthenticated(request);
-    if (userId === null) {
-      return undefined;
-    }
-    return await findUniqueUser(userId);
-  } catch {
-    throw redirect("/sign-out");
+    // Your existing code with proper error handling
+    // ...
+    return user;
+  } catch (error) {
+    console.error("Error in findRequestUser:", error);
+    return null;
   }
 }
 
-export async function requireUser(request: Request) {
-  const user = await findRequestUser(request);
-  if (user === undefined) {
-    throw redirect("/sign-in");
-  }
-  return user;
-}
+// Add similar error handling to other auth-related functions

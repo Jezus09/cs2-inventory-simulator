@@ -1,0 +1,8 @@
+// Importáld a marketplace stringeket
+import { marketplaceStrings } from './marketplace-strings';
+
+// Add hozzá a fő stringek objektumhoz
+export const strings = {
+  ...existingStrings,
+  ...marketplaceStrings
+};

@@ -1,0 +1,38 @@
+// az importoknál add hozzá a faStore ikont:
+import {
+  faBarsStaggered,
+  faBoxesStacked,
+  faCog,
+  faHammer,
+  faRightFromBracket,
+  faStore, // <-- ezt add hozzá
+  faXmark
+  // ... többi import
+} from "@fortawesome/free-solid-svg-icons";
+
+// A HeaderLink-eket tartalmazó kódban, az inventory és craft gombok után, de még a feltételes (user === undefined) blokk előtt:
+<HeaderLink
+  to="/"
+  icon={faBoxesStacked}
+  label={localize("HeaderInventoryLabel")}
+  onClick={closeMenu}
+/>
+<HeaderLink
+  disabled={isCraftDisabled}
+  disabledText={
+    isInventoryFull
+      ? localize("HeaderCraftInventoryFull")
+      : localize("HeaderCraftCannotCraft")
+  }
+  to="/craft"
+  icon={faHammer}
+  label={localize("HeaderCraftLabel")}
+  onClick={closeMenu}
+/>
+{/* Itt add hozzá a marketplace linket */}
+<HeaderLink
+  to="/marketplace"
+  icon={faStore}
+  label={localize("HeaderMarketplaceLabel") || "Marketplace"} 
+  onClick={closeMenu}
+/>

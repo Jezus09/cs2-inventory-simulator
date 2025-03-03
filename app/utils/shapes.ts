@@ -5,6 +5,11 @@
 
 import { CS2Economy } from "@ianlucas/cs2-lib";
 import { z } from "zod";
+import {
+  validateStickerOffset,
+  validateStickerRotation,
+  validateStickerWear
+} from "./economy";
 
 export const nonNegativeInt = z.number().int().nonnegative().finite().safe();
 export const positiveInt = z.number().int().positive().finite().safe();
@@ -22,17 +27,31 @@ export const baseInventoryItemProps = {
     .transform((nameTag) => CS2Economy.trimNametag(nameTag))
     .refine((nameTag) => CS2Economy.safeValidateNametag(nameTag)),
   patches: z.record(nonNegativeInt).optional(),
-  seed: positiveInt
-    .optional()
-    .refine((seed) => CS2Economy.safeValidateSeed(seed)),
+  seed: positiveInt.optional(),
   statTrak: z.literal(0).optional(),
   stickers: z
     .record(
       z.object({
         id: nonNegativeInt,
-        wear: nonNegativeFloat.optional(),
-        x: z.number().finite().optional(),
-        y: z.number().finite().optional()
+        rotation: positiveInt
+          .optional()
+          .refine(
+            (rotation) =>
+              rotation === undefined || validateStickerRotation(rotation)
+          ),
+        wear: nonNegativeFloat
+          .optional()
+          .refine((wear) => wear === undefined || validateStickerWear(wear)),
+        x: z
+          .number()
+          .finite()
+          .optional()
+          .refine((x) => x === undefined || validateStickerOffset(x)),
+        y: z
+          .number()
+          .finite()
+          .optional()
+          .refine((y) => y === undefined || validateStickerOffset(y))
       })
     )
     .optional(),
