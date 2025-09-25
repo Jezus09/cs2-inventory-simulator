@@ -72,7 +72,7 @@ export function useUser() {
 export function useIsOwner() {
   const { user, rules } = useAppContext();
   // If no owner is set, everyone is considered an "owner" (can craft)
-  if (!rules.ownerId) {
+  if (!rules.ownerId || rules.ownerId.trim() === "") {
     return true;
   }
   return user?.id === rules.ownerId;

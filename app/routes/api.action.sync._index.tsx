@@ -192,7 +192,7 @@ export type ApiActionSyncData = {
 };
 
 function enforceOwnerOnlyCraft(userId: string) {
-  if (OWNER_ID && userId !== OWNER_ID) {
+  if (OWNER_ID && OWNER_ID.trim() !== "" && userId !== OWNER_ID) {
     throw new Response("Crafting is disabled for non-owners.", { status: 403 });
   }
 }
