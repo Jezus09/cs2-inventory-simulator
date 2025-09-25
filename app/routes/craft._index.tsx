@@ -9,7 +9,7 @@ import lzstring from "lz-string";
 import { useState } from "react";
 import { data, useLoaderData, useNavigate } from "react-router";
 import { z } from "zod";
-import { useInventory, useLocalize } from "~/components/app-context";
+import { useInventory, useIsOwner, useLocalize } from "~/components/app-context";
 import { CraftEdit } from "~/components/craft-edit";
 import { CraftNew } from "~/components/craft-new";
 import { CraftShareUser } from "~/components/craft-share-user";
@@ -87,6 +87,7 @@ export default function Craft() {
   const sync = useSync();
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
+  const isOwner = useIsOwner();
 
   const [inventory, setInventory] = useInventory();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -168,7 +169,7 @@ export default function Craft() {
 
   return (
     <>
-      {isCrafting && (
+      {isCrafting && isOwner && (
         <Modal
           className={clsx(
             isDesktop ? "max-w-[720px] min-w-[640px]" : "w-[540px]"
@@ -178,7 +179,15 @@ export default function Craft() {
           <ItemPicker onPickItem={setItem} />
         </Modal>
       )}
-      {hasItem && (
+      {isCrafting && !isOwner && (
+        <Modal className="w-[420px]">
+          <ModalHeader title={localize("CraftSelectHeader")} linkTo="/" />
+          <div className="p-4 text-center">
+            <p className="text-red-500">Crafting is disabled for non-owners.</p>
+          </div>
+        </Modal>
+      )}
+      {hasItem && (isOwner || !isCrafting) && (
         <Modal className="w-[420px]">
           <ModalHeader
             title={localize(

@@ -69,6 +69,15 @@ export function useUser() {
   return useAppContext().user;
 }
 
+export function useIsOwner() {
+  const { user, rules } = useAppContext();
+  // If no owner is set, everyone is considered an "owner" (can craft)
+  if (!rules.ownerId) {
+    return true;
+  }
+  return user?.id === rules.ownerId;
+}
+
 export function useInventoryItems() {
   return useAppContext().items;
 }
