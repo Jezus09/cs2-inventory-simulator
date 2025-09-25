@@ -69,6 +69,11 @@ export function useUser() {
   return useAppContext().user;
 }
 
+export function useIsOwner() {
+  const { user, rules } = useAppContext();
+  return user?.id === rules.ownerId;
+}
+
 export function useInventoryItems() {
   return useAppContext().items;
 }

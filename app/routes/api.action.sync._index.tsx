@@ -14,6 +14,7 @@ import { z } from "zod";
 import { api } from "~/api.server";
 import { requireUser } from "~/auth.server";
 import { SyncAction } from "~/data/sync";
+import { OWNER_ID } from "~/env.server";
 import { middleware } from "~/http.server";
 import {
   craftAllowNametag,
@@ -190,6 +191,12 @@ export type ApiActionSyncData = {
   syncedAt: number;
 };
 
+function enforceOwnerOnlyCraft(userId: string) {
+  if (OWNER_ID && userId !== OWNER_ID) {
+    throw new Response("Crafting is disabled for non-owners.", { status: 403 });
+  }
+}
+
 async function enforceCraftRulesForItem(
   idOrItem: number | CS2EconomyItem,
   userId: string
@@ -343,6 +350,7 @@ export const action = api(async ({ request }: Route.ActionArgs) => {
       for (const action of actions) {
         switch (action.type) {
           case SyncAction.Add:
+            enforceOwnerOnlyCraft(userId);
             await enforceCraftRulesForItem(action.item.id, userId);
             await enforceCraftRulesForInventoryItem(action.item, userId);
             inventory.add(action.item);
@@ -360,6 +368,7 @@ export const action = api(async ({ request }: Route.ActionArgs) => {
             }
             break;
           case SyncAction.AddWithNametag:
+            enforceOwnerOnlyCraft(userId);
             await enforceCraftRulesForItem(action.itemId, userId);
             inventory.addWithNametag(
               action.toolUid,
@@ -424,6 +433,7 @@ export const action = api(async ({ request }: Route.ActionArgs) => {
             inventory.retrieveFromStorageUnit(action.uid, action.retrieveUids);
             break;
           case SyncAction.Edit:
+            enforceOwnerOnlyCraft(userId);
             await inventoryItemAllowEdit.for(userId).truthy();
             await enforceEditRulesForItem(action.attributes.id, userId);
             await enforceEditRulesForInventoryItem(action.attributes, userId);
@@ -437,6 +447,7 @@ export const action = api(async ({ request }: Route.ActionArgs) => {
             });
             break;
           case SyncAction.AddWithSticker:
+            enforceOwnerOnlyCraft(userId);
             await enforceCraftRulesForItem(action.itemId, userId);
             inventory.addWithSticker(
               action.stickerUid,

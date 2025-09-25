@@ -35,6 +35,7 @@ import { SyncWarn } from "./components/sync-warn";
 import {
   ASSETS_BASE_URL,
   CLOUDFLARE_ANALYTICS_TOKEN,
+  OWNER_ID,
   SOURCE_COMMIT
 } from "./env.server";
 import { middleware } from "./http.server";
@@ -91,6 +92,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       ...(await getClientRules(user?.id)),
       assetsBaseUrl: noempty(ASSETS_BASE_URL),
       cloudflareAnalyticsToken: CLOUDFLARE_ANALYTICS_TOKEN,
+      ownerId: OWNER_ID,
       sourceCommit: SOURCE_COMMIT,
       meta: { appUrl, appSiteName }
     },
